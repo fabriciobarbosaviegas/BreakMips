@@ -66,32 +66,32 @@
 	block_matrix:
     	.word 10, 20, BL_W, BL_H, 1
     	.word 25, 20, BL_W, BL_H, 1
-    	.word 41, 20, BL_W, BL_H, 1
-    	.word 57, 20, BL_W, BL_H, 1
-    	.word 72, 20, BL_W, BL_H, 1
-    	.word 87, 20, BL_W, BL_H, 1
-    	.word 103, 20, BL_W, BL_H, 1
-    	.word 9, 15, BL_W, BL_H, 1
-    	.word 25, 15, BL_W, BL_H, 1
-    	.word 41, 15, BL_W, BL_H, 1
-    	.word 57, 15, BL_W, BL_H, 1
-    	.word 72, 15, BL_W, BL_H, 1
-    	.word 87, 15, BL_W, BL_H, 1
-    	.word 103, 15, BL_W, BL_H, 1
-    	.word 9, 10, BL_W, BL_H, 1
-    	.word 25, 10, BL_W, BL_H, 1
-    	.word 41, 10, BL_W, BL_H, 1
-    	.word 57, 10, BL_W, BL_H, 1
-    	.word 72, 10, BL_W, BL_H, 1
-    	.word 87, 10, BL_W, BL_H, 1
-    	.word 103, 10, BL_W, BL_H, 1
-    	.word 9, 5, BL_W, BL_H, 1
-    	.word 25, 5, BL_W, BL_H, 1
-    	.word 41, 5, BL_W, BL_H, 1
-    	.word 57, 5, BL_W, BL_H, 1
-    	.word 72, 5, BL_W, BL_H, 1
-    	.word 87, 5, BL_W, BL_H, 1
-    	.word 103, 5, BL_W, BL_H, 1
+    	.word 42, 20, BL_W, BL_H, 1
+    	.word 58, 20, BL_W, BL_H, 1
+    	.word 73, 20, BL_W, BL_H, 1
+    	.word 88, 20, BL_W, BL_H, 1
+    	.word 104, 20, BL_W, BL_H, 1
+    	.word 10, 15, BL_W, BL_H, 1
+    	.word 26, 15, BL_W, BL_H, 1
+    	.word 42, 15, BL_W, BL_H, 1
+    	.word 58, 15, BL_W, BL_H, 1
+    	.word 73, 15, BL_W, BL_H, 1
+    	.word 88, 15, BL_W, BL_H, 1
+    	.word 104, 15, BL_W, BL_H, 1
+    	.word 10, 10, BL_W, BL_H, 1
+    	.word 26, 10, BL_W, BL_H, 1
+    	.word 42, 10, BL_W, BL_H, 1
+    	.word 58, 10, BL_W, BL_H, 1
+    	.word 73, 10, BL_W, BL_H, 1
+    	.word 88, 10, BL_W, BL_H, 1
+    	.word 104, 10, BL_W, BL_H, 1
+    	.word 10, 5, BL_W, BL_H, 1
+    	.word 26, 5, BL_W, BL_H, 1
+    	.word 42, 5, BL_W, BL_H, 1
+    	.word 58, 5, BL_W, BL_H, 1
+    	.word 73, 5, BL_W, BL_H, 1
+    	.word 88, 5, BL_W, BL_H, 1
+    	.word 104, 5, BL_W, BL_H, 1
 	# ================================= Game info ============================================
 	debounce_timer: .word 0
 	main_cnt: .word 0 			# main counter
@@ -444,6 +444,8 @@ perdeu_loop_keyboard_press_s:
 	sw $t0, ball_vx
 	sw $t0, ball_vy
 	
+	jal reset_blocks
+	
 	j main
 	
 perdeu_loop_NXT:
@@ -717,7 +719,49 @@ end_check_block:
     lw $ra, 12($sp)
     addi $sp, $sp, 16  # Liberar espaço na pilha
     jr $ra             # Retornar
-    	
+
+# tornar todos os blocos ativos novamente   
+reset_blocks:
+    # Salvar valores de registradores salvos
+    addi $sp, $sp, -16  # Reservar espaço na pilha
+    sw $s0, 0($sp)
+    sw $s1, 4($sp)
+    sw $s2, 8($sp)
+    sw $ra, 12($sp)
+    
+    la $s0, block_matrix   # Carregar a matriz de blocos
+    li $s1, 0              # Contador de blocos
+    li $s2, 28             # Total de blocos (7x4) 
+
+reset_block_loop:
+    beq $s1, $s2, end_reset_block  # Se já verificamos todos os blocos, sair
+    
+    # Carregar informações do bloco (x, y, w, h, ativo)
+    lw $t0, 0($s0)  # x do bloco
+    lw $t1, 4($s0)  # y do bloco
+    lw $t2, 8($s0)  # largura do bloco
+    lw $t3, 12($s0) # altura do bloco
+    lw $t4, 16($s0) # status do bloco (ativo/inativo)
+    
+    beq $t4, 1, reset_skip_block # Se o bloco estiver ativo, pular
+    
+    li $t4, 1
+    sw $t4, 16($s0)
+
+reset_skip_block:
+    addi $s1, $s1, 1      # Próximo bloco
+    addi $s0, $s0, 20     # Próxima entrada no block_matrix
+    j reset_block_loop
+
+end_reset_block:
+    # Restaurar os registradores salvos
+    lw $s0, 0($sp)
+    lw $s1, 4($sp)
+    lw $s2, 8($sp)
+    lw $ra, 12($sp)
+    addi $sp, $sp, 16  # Liberar espaço na pilha
+    jr $ra             # Retornar
+        
 main_EXIT:
 	# End program
 	li $v0, 10
