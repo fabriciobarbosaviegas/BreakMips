@@ -7,6 +7,10 @@
 .eqv S_WB 7 		# log2 S_H
 .eqv S_HB 6 		# log2 S_W
 
+# Block settings
+.eqv BL_H 5
+.eqv BL_W 16
+
 # Paddle settings
 .eqv P_H 4 		# Paddle height
 .eqv P_W 20 		# Paddle Width
@@ -55,6 +59,39 @@
 	ball_state: .word BALL_FALLING		# Ball state
 	frames_since_ball: .word 30		# Frame delay in ball
 			
+	# ================================ Blocks Control ========================================	
+	#block: .word block_x, block_y, block_w, block_h, block_active
+
+	# Inicialize a matriz de blocos
+	block_matrix:
+    	.word 10, 20, BL_W, BL_H, 1
+    	.word 25, 20, BL_W, BL_H, 1
+    	.word 41, 20, BL_W, BL_H, 1
+    	.word 57, 20, BL_W, BL_H, 1
+    	.word 72, 20, BL_W, BL_H, 1
+    	.word 87, 20, BL_W, BL_H, 1
+    	.word 103, 20, BL_W, BL_H, 1
+    	.word 9, 15, BL_W, BL_H, 1
+    	.word 25, 15, BL_W, BL_H, 1
+    	.word 41, 15, BL_W, BL_H, 1
+    	.word 57, 15, BL_W, BL_H, 1
+    	.word 72, 15, BL_W, BL_H, 1
+    	.word 87, 15, BL_W, BL_H, 1
+    	.word 103, 15, BL_W, BL_H, 1
+    	.word 9, 10, BL_W, BL_H, 1
+    	.word 25, 10, BL_W, BL_H, 1
+    	.word 41, 10, BL_W, BL_H, 1
+    	.word 57, 10, BL_W, BL_H, 1
+    	.word 72, 10, BL_W, BL_H, 1
+    	.word 87, 10, BL_W, BL_H, 1
+    	.word 103, 10, BL_W, BL_H, 1
+    	.word 9, 5, BL_W, BL_H, 1
+    	.word 25, 5, BL_W, BL_H, 1
+    	.word 41, 5, BL_W, BL_H, 1
+    	.word 57, 5, BL_W, BL_H, 1
+    	.word 72, 5, BL_W, BL_H, 1
+    	.word 87, 5, BL_W, BL_H, 1
+    	.word 103, 5, BL_W, BL_H, 1
 	# ================================= Game info ============================================
 	debounce_timer: .word 0
 	main_cnt: .word 0 			# main counter
@@ -62,18 +99,14 @@
 	best_cnt: .word 0 			# best score counter
 	time_hi: .word 0 			# most significant word of the saved system time
 	time_lo: .word 0 			# least significant word of the saved system time
+	duration: .word 500     		# Duração em milissegundos
+    	instrument: .word 0     		# Instrumento padrão
+    	volume: .word 100       		# Volume (0-127)
 
 .text
 .globl main
 
 main:
-	# Init the music player
-	li $s0, 0
-	#sw $s0, music_rt
-	#la $s0, background_music
-	#sw $s0, music_p
-
-main_start:
 	# draw start menu
 	la $a0, menu_img
 	li $a1, 0
@@ -156,6 +189,9 @@ main_game_loop:
     	beq $t1, 30, handle_ball
     	j end_handle_ball
     	
+    	lw $t2, main_cnt
+    	beq $t2, 140, ganhou
+    	
 handle_ball:
 	li $t1, 0
 	sw $t1, frames_since_ball
@@ -176,13 +212,17 @@ fall_ball:
     	sw $t1, ball_y
 
     	# Colisão com a parede superior
-    	beqz $t1, ball_wall_collision
+    	ble $t1, $zero, ball_wall_collision
     	# Colisão com a parede inferior
     	bge $t1, S_H, perdeu
     	# Colisão com a parede esquerda
     	blt $t0, 10, ball_wall_collision_left
     	# Colisão com a parede direito
     	bge $t0, 113, ball_wall_collision_right
+    	
+    	# Colisão com os blocos
+	jal check_block_collision
+    	
     	# Colisão com o paddle
     	j ball_paddle_collision
     	
@@ -203,6 +243,7 @@ end_handle_ball:
 	j main_game_loop_NXT  # Pular para o próximo loop se nenhuma tecla foi pressionada
 
 ball_wall_collision:
+
     # Inverta a direção da bola
     lw $t0, ball_vy
     not $t0, $t0
@@ -212,7 +253,7 @@ ball_wall_collision:
 ball_wall_collision_right:
     # Colisão com a parede superior
     bge $t1, S_H, ball_wall_collision
-
+    
     lw $t0, ball_vx
     not $t0, $t0
     sw $t0, ball_vx
@@ -222,7 +263,7 @@ ball_wall_collision_right:
  ball_wall_collision_left:
     # Colisão com a parede superior
     beqz $t1, ball_wall_collision
-
+    
     lw $t0, ball_vx
     not $t0, $t0
     sw $t0, ball_vx
@@ -247,12 +288,12 @@ check_paddle_x:
     blt $t0, $t4, end_ball_paddle_collision
     add $t4, $t2, P_W
     bgt $t0, $t4, end_ball_paddle_collision
-    
+
     # If the ball has collided with the paddle, invert the ball's y velocity
     lw $t0, ball_vy
     not $t0, $t0
     sw $t0, ball_vy
-    
+      
 end_ball_paddle_collision:
     j end_handle_ball
     
@@ -317,7 +358,6 @@ move_paddle_right:
     j paddle_handle_right_end
 
 paddle_handle_right:
-	
     li $t0, 0
     sw $t0, frames_since_paddle
     
@@ -346,7 +386,6 @@ paddle_handle_right:
     jal draw_image
    
 paddle_handle_right_end:
-	
     lw $t0, frames_since_paddle
     addi $t0, $t0, 1
     sw $t0, frames_since_paddle
@@ -415,6 +454,20 @@ perdeu_loop_NXT:
 main_game_loop_NXT:
 	jal frame_sync_delay
 	j main_game_loop
+    
+play_sound:
+    # Carregar parâmetros
+    li $a0, 62              # Pitch (D4)
+    lw $a1, duration        # Duração
+    lw $a2, instrument      # Instrumento
+    lw $a3, volume          # Volume
+
+    # Chamar função MIDI out
+    li $v0, 31              # Chamada para MIDI out
+    syscall
+
+    jr $ra
+
 
 # -------------------------------------------------------------------
 # draw_image
@@ -579,6 +632,92 @@ frame_sync_delay_call:
 	addi $sp, $sp, -4
 	jr $ra
 
+check_block_collision:
+    # Salvar valores de registradores salvos
+    addi $sp, $sp, -16  # Reservar espaço na pilha
+    sw $s0, 0($sp)
+    sw $s1, 4($sp)
+    sw $s2, 8($sp)
+    sw $ra, 12($sp)
+    
+    la $s0, block_matrix   # Carregar a matriz de blocos
+    li $s1, 0              # Contador de blocos
+    li $s2, 28             # Total de blocos (7x4)
+    li $s3, 0  		   # Flag para indicar se houve colisão
+
+check_block_loop:
+    beq $s1, $s2, end_check_block  # Se já verificamos todos os blocos, sair
+    
+    # Carregar informações do bloco (x, y, w, h, ativo)
+    lw $t0, 0($s0)  # x do bloco
+    lw $t1, 4($s0)  # y do bloco
+    lw $t2, 8($s0)  # largura do bloco
+    lw $t3, 12($s0) # altura do bloco
+    lw $t4, 16($s0) # status do bloco (ativo/inativo)
+    
+    beqz $t4, skip_block # Se o bloco estiver inativo, pular
+    
+    # Se já houve uma colisão, pular o restante
+    bnez $s3, skip_block  # Se já houve uma colisão, pular
+
+    # Verificar colisão da bola com o bloco
+    lw $t5, ball_x   # Posição x da bola
+    lw $t6, ball_y   # Posição y da bola
+
+    # Calcular o limite direito e inferior do bloco
+    add $t7, $t0, $t2 # limite direito do bloco
+    add $t8, $t1, $t3 # limite inferior do bloco
+
+    # Verificar se a bola está dentro do bloco
+    blt $t5, $t0, skip_block       # Se a bola estiver à esquerda do bloco, pular
+    bge $t5, $t7, skip_block       # Se a bola estiver à direita do bloco, pular
+    blt $t6, $t1, skip_block       # Se a bola estiver acima do bloco, pular
+    bge $t6, $t8, skip_block       # Se a bola estiver abaixo do bloco, pular
+    
+    # Colisão detectada, inverter direção da bola
+    lw $t7, ball_vy
+    not $t7, $t7
+    sw $t7, ball_vy
+
+    lw $t7, main_cnt
+    addi $t7, $t7, 5
+    sw $t7, main_cnt
+    
+    # Desativar o bloco
+    li $t4, 0
+    sw $t4, 16($s0)
+    li $s3, 1  # Indicar que houve uma colisão
+
+    addiu $sp, $sp, -4
+    sw $ra, ($sp)
+        
+    move $a0, $t1 # y
+    subi $a0, $a0, BL_H
+    move $a1, $t0 # x
+    #subi $a1, $a1, BL_W
+    move $a2, $t3 # h
+    move $a3, $t2 # w
+    jal erase
+    
+    lw $ra, ($sp)
+    addiu $sp, $sp, 4
+    
+    j end_check_block
+
+skip_block:
+    addi $s1, $s1, 1      # Próximo bloco
+    addi $s0, $s0, 20     # Próxima entrada no block_matrix
+    j check_block_loop
+
+end_check_block:
+    # Restaurar os registradores salvos
+    lw $s0, 0($sp)
+    lw $s1, 4($sp)
+    lw $s2, 8($sp)
+    lw $ra, 12($sp)
+    addi $sp, $sp, 16  # Liberar espaço na pilha
+    jr $ra             # Retornar
+    	
 main_EXIT:
 	# End program
 	li $v0, 10
