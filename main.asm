@@ -29,12 +29,6 @@
 .eqv P_SPEED 1 		# Velocidade de movimento do paddle
 .eqv DEBOUNCE_TIME 20   # Debounce time in keys press
 
-# Music?
-.eqv MUSIC_ON 1 	# Music on / off
-.eqv INSTRUMENT 0 	# The id of instrument for playing the music
-.eqv VOLUMN 50 		# The music volumn
-.eqv MUSIC_DLY 1000 	# How long a note play (in ms)
-
 # Colors
 .eqv C_BG 0x000000 	# Background color
 
@@ -64,34 +58,37 @@
 
 	# Inicialize a matriz de blocos
 	block_matrix:
-    	.word 10, 20, BL_W, BL_H, 1
+    	.word 9, 20, BL_W, BL_H, 1
     	.word 25, 20, BL_W, BL_H, 1
-    	.word 42, 20, BL_W, BL_H, 1
-    	.word 58, 20, BL_W, BL_H, 1
-    	.word 73, 20, BL_W, BL_H, 1
-    	.word 88, 20, BL_W, BL_H, 1
-    	.word 104, 20, BL_W, BL_H, 1
-    	.word 10, 15, BL_W, BL_H, 1
-    	.word 26, 15, BL_W, BL_H, 1
-    	.word 42, 15, BL_W, BL_H, 1
-    	.word 58, 15, BL_W, BL_H, 1
-    	.word 73, 15, BL_W, BL_H, 1
-    	.word 88, 15, BL_W, BL_H, 1
-    	.word 104, 15, BL_W, BL_H, 1
-    	.word 10, 10, BL_W, BL_H, 1
-    	.word 26, 10, BL_W, BL_H, 1
-    	.word 42, 10, BL_W, BL_H, 1
-    	.word 58, 10, BL_W, BL_H, 1
-    	.word 73, 10, BL_W, BL_H, 1
-    	.word 88, 10, BL_W, BL_H, 1
-    	.word 104, 10, BL_W, BL_H, 1
-    	.word 10, 5, BL_W, BL_H, 1
-    	.word 26, 5, BL_W, BL_H, 1
-    	.word 42, 5, BL_W, BL_H, 1
-    	.word 58, 5, BL_W, BL_H, 1
-    	.word 73, 5, BL_W, BL_H, 1
-    	.word 88, 5, BL_W, BL_H, 1
-    	.word 104, 5, BL_W, BL_H, 1
+    	.word 41, 20, BL_W, BL_H, 1
+    	.word 56, 20, BL_W, BL_H, 1
+    	.word 72, 20, BL_W, BL_H, 1
+    	.word 87, 20, BL_W, BL_H, 1
+    	.word 102, 20, BL_W, BL_H, 1
+
+      	.word 9, 15, BL_W, BL_H, 1
+    	.word 25, 15, BL_W, BL_H, 1
+    	.word 41, 15, BL_W, BL_H, 1
+    	.word 56, 15, BL_W, BL_H, 1
+    	.word 72, 15, BL_W, BL_H, 1
+    	.word 87, 15, BL_W, BL_H, 1
+    	.word 102, 15, BL_W, BL_H, 1
+    	
+    	.word 9, 10, BL_W, BL_H, 1
+    	.word 25, 10, BL_W, BL_H, 1
+    	.word 41, 10, BL_W, BL_H, 1
+    	.word 56, 10, BL_W, BL_H, 1
+    	.word 72, 10, BL_W, BL_H, 1
+    	.word 87, 10, BL_W, BL_H, 1
+    	.word 102, 10, BL_W, BL_H, 1
+    	
+    	.word 9, 5, BL_W, BL_H, 1
+    	.word 25, 5, BL_W, BL_H, 1
+    	.word 41, 5, BL_W, BL_H, 1
+    	.word 56, 5, BL_W, BL_H, 1
+    	.word 72, 5, BL_W, BL_H, 1
+    	.word 87, 5, BL_W, BL_H, 1
+    	.word 102, 5, BL_W, BL_H, 1
 	# ================================= Game info ============================================
 	debounce_timer: .word 0
 	main_cnt: .word 0 			# main counter
@@ -117,8 +114,7 @@ main:
 
 main_menu_loop:
 	jal frame_sync_init
-	# Music!
-	#jal play_music
+
 	# Check keyboard
 	li $s0, 0xffff0000
 	lw $s1, 0($s0)
@@ -171,6 +167,9 @@ main_init_game:
 	sw $t0, ball_state
 
 main_game_loop:    	
+    	lw $t2, main_cnt
+    	bge $t2, 135, ganhou
+    	
 	lw $s1, 0($s0)       # Ler o estado do teclado
 	lw $s2, 4($s0)       # Ler a tecla pressionada
 
@@ -188,9 +187,6 @@ main_game_loop:
     	lw $t1, frames_since_ball
     	beq $t1, 30, handle_ball
     	j end_handle_ball
-    	
-    	lw $t2, main_cnt
-    	beq $t2, 140, ganhou
     	
 handle_ball:
 	li $t1, 0
@@ -210,9 +206,9 @@ fall_ball:
     	add $t1, $t1, $t3
     	sw $t0, ball_x
     	sw $t1, ball_y
-
+	
     	# Colisão com a parede superior
-    	ble $t1, $zero, ball_wall_collision
+    	beq $t1, $zero, ball_wall_collision
     	# Colisão com a parede inferior
     	bge $t1, S_H, perdeu
     	# Colisão com a parede esquerda
@@ -220,11 +216,14 @@ fall_ball:
     	# Colisão com a parede direito
     	bge $t0, 113, ball_wall_collision_right
     	
+    	jal check_ball_off_game
+    	
     	# Colisão com os blocos
 	jal check_block_collision
-    	
-    	# Colisão com o paddle
-    	j ball_paddle_collision
+	
+	j ball_paddle_collision
+	
+    	jal frame_sync_delay
     	
 end_fall_ball:
 end_handle_ball:	
@@ -240,7 +239,7 @@ end_handle_ball:
     	beq $s2, 97, move_paddle_left
     	beq $s2, 100, move_paddle_right
     
-	j main_game_loop_NXT  # Pular para o próximo loop se nenhuma tecla foi pressionada
+	j main_game_loop_NXT  # Pular para o próximo loop se nenhuma tecla foi pressionada	
 
 ball_wall_collision:
 
@@ -248,6 +247,7 @@ ball_wall_collision:
     lw $t0, ball_vy
     not $t0, $t0
     sw $t0, ball_vy
+    jal play_sound  	  	
     j end_handle_ball
     
 ball_wall_collision_right:
@@ -257,7 +257,7 @@ ball_wall_collision_right:
     lw $t0, ball_vx
     not $t0, $t0
     sw $t0, ball_vx
-        
+    jal play_sound  	  	    
     j end_handle_ball
     
  ball_wall_collision_left:
@@ -267,7 +267,8 @@ ball_wall_collision_right:
     lw $t0, ball_vx
     not $t0, $t0
     sw $t0, ball_vx
-        
+    jal play_sound  	  	        
+    
     j end_handle_ball
     
 ball_paddle_collision:
@@ -293,8 +294,10 @@ check_paddle_x:
     lw $t0, ball_vy
     not $t0, $t0
     sw $t0, ball_vy
+    
+    jal play_sound
       
-end_ball_paddle_collision:
+end_ball_paddle_collision:  	  	
     j end_handle_ball
     
 input_listener:
@@ -444,6 +447,8 @@ perdeu_loop_keyboard_press_s:
 	sw $t0, ball_vx
 	sw $t0, ball_vy
 	
+	sw $zero, main_cnt
+	
 	jal reset_blocks
 	
 	j main
@@ -469,7 +474,6 @@ play_sound:
     syscall
 
     jr $ra
-
 
 # -------------------------------------------------------------------
 # draw_image
@@ -675,12 +679,18 @@ check_block_loop:
     bge $t5, $t7, skip_block       # Se a bola estiver à direita do bloco, pular
     blt $t6, $t1, skip_block       # Se a bola estiver acima do bloco, pular
     bge $t6, $t8, skip_block       # Se a bola estiver abaixo do bloco, pular
-    
+
+    # Verificar se a bola está dentro dos limites do bloco
+    blt $t5, $t0, block_collision_adjust_x  # Se a bola estiver à esquerda do bloco, ajustar
+    bge $t5, $t7, block_collision_adjust_x  # Se a bola estiver à direita do bloco, ajustar
+    blt $t6, $t1, block_collision_adjust_y  # Se a bola estiver acima do bloco, ajustar
+    bge $t6, $t8, block_collision_adjust_y  # Se a bola estiver abaixo do bloco, ajustar
+
     # Colisão detectada, inverter direção da bola
     lw $t7, ball_vy
     not $t7, $t7
     sw $t7, ball_vy
-
+    
     lw $t7, main_cnt
     addi $t7, $t7, 5
     sw $t7, main_cnt
@@ -704,11 +714,50 @@ check_block_loop:
     lw $ra, ($sp)
     addiu $sp, $sp, 4
     
+    addiu $sp, $sp, -4
+    sw $ra, ($sp)
+            
+    jal play_sound
+
+    lw $ra, ($sp)
+    addiu $sp, $sp, 4
+    
     j end_check_block
 
+block_collision_adjust_x:
+    # Ajustar a posição x da bola para evitar que ela entre dentro do bloco
+    ble $t5, $t0, block_collision_adjust_x_left
+    bge $t5, $t7, block_collision_adjust_x_right
+
+block_collision_adjust_x_left:
+    move $t5, $t0
+    sw $t5, ball_x
+    j skip_block
+
+block_collision_adjust_x_right:
+    move $t5, $t7
+    sw $t5, ball_x
+    j skip_block
+
+block_collision_adjust_y:
+    # Ajustar a posição y da bola para evitar que ela entre dentro do bloco
+    ble $t6, $t1, block_collision_adjust_y_up
+    bge $t6, $t8, block_collision_adjust_y_down
+
+block_collision_adjust_y_up:
+    move $t6, $t1
+    sw $t6, ball_y
+    j skip_block
+
+block_collision_adjust_y_down:
+    move $t6, $t8
+    sw $t6, ball_y
+    j skip_block
+    
 skip_block:
     addi $s1, $s1, 1      # Próximo bloco
     addi $s0, $s0, 20     # Próxima entrada no block_matrix
+    
     j check_block_loop
 
 end_check_block:
@@ -720,47 +769,74 @@ end_check_block:
     addi $sp, $sp, 16  # Liberar espaço na pilha
     jr $ra             # Retornar
 
+# verificar se a bola está fora do campo e reiniciar sua posição
+check_ball_off_game:
+    	lw $t0, ball_x
+    	lw $t1, ball_y
+
+    	# Colisão com a parede superior
+    	blt $t1, $zero, ball_off_game
+    	# Colisão com a parede esquerda
+    	blt $t0, 9, ball_off_game
+    	# Colisão com a parede direito
+    	bgt $t0, 113, ball_off_game
+    	
+	jr $ra
+
+ball_off_game:
+	li $t0, 20
+	li $t1, B_INIT_Y
+	sw $t0, ball_x
+	sw $t1, ball_y
+	
+	li $t0, 1
+	sw $t0, ball_vx
+	not $t0, $t0
+	sw $t0, ball_vy
+	
+	jr $ra
+
 # tornar todos os blocos ativos novamente   
 reset_blocks:
-    # Salvar valores de registradores salvos
-    addi $sp, $sp, -16  # Reservar espaço na pilha
-    sw $s0, 0($sp)
-    sw $s1, 4($sp)
-    sw $s2, 8($sp)
-    sw $ra, 12($sp)
+    	# Salvar valores de registradores salvos
+    	addi $sp, $sp, -16  # Reservar espaço na pilha
+    	sw $s0, 0($sp)
+    	sw $s1, 4($sp)
+    	sw $s2, 8($sp)
+    	sw $ra, 12($sp)
     
-    la $s0, block_matrix   # Carregar a matriz de blocos
-    li $s1, 0              # Contador de blocos
-    li $s2, 28             # Total de blocos (7x4) 
+    	la $s0, block_matrix   # Carregar a matriz de blocos
+    	li $s1, 0              # Contador de blocos
+    	li $s2, 28             # Total de blocos (7x4) 
 
 reset_block_loop:
-    beq $s1, $s2, end_reset_block  # Se já verificamos todos os blocos, sair
+    	beq $s1, $s2, end_reset_block  # Se já verificamos todos os blocos, sair
     
-    # Carregar informações do bloco (x, y, w, h, ativo)
-    lw $t0, 0($s0)  # x do bloco
-    lw $t1, 4($s0)  # y do bloco
-    lw $t2, 8($s0)  # largura do bloco
-    lw $t3, 12($s0) # altura do bloco
-    lw $t4, 16($s0) # status do bloco (ativo/inativo)
+    	# Carregar informações do bloco (x, y, w, h, ativo)
+    	lw $t0, 0($s0)  # x do bloco
+    	lw $t1, 4($s0)  # y do bloco
+    	lw $t2, 8($s0)  # largura do bloco
+   	lw $t3, 12($s0) # altura do bloco
+   	lw $t4, 16($s0) # status do bloco (ativo/inativo)
     
-    beq $t4, 1, reset_skip_block # Se o bloco estiver ativo, pular
+   	beq $t4, 1, reset_skip_block # Se o bloco estiver ativo, pular
     
-    li $t4, 1
-    sw $t4, 16($s0)
+    	li $t4, 1
+    	sw $t4, 16($s0)
 
 reset_skip_block:
-    addi $s1, $s1, 1      # Próximo bloco
-    addi $s0, $s0, 20     # Próxima entrada no block_matrix
-    j reset_block_loop
+    	addi $s1, $s1, 1      # Próximo bloco
+    	addi $s0, $s0, 20     # Próxima entrada no block_matrix
+    	j reset_block_loop
 
 end_reset_block:
-    # Restaurar os registradores salvos
-    lw $s0, 0($sp)
-    lw $s1, 4($sp)
-    lw $s2, 8($sp)
-    lw $ra, 12($sp)
-    addi $sp, $sp, 16  # Liberar espaço na pilha
-    jr $ra             # Retornar
+    	# Restaurar os registradores salvos
+    	lw $s0, 0($sp)
+    	lw $s1, 4($sp)
+    	lw $s2, 8($sp)
+    	lw $ra, 12($sp)
+    	addi $sp, $sp, 16  # Liberar espaço na pilha
+    	jr $ra             # Retornar
         
 main_EXIT:
 	# End program
