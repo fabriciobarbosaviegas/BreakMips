@@ -1,37 +1,83 @@
+# Índice
+
+1. [Introdução](#breakmips)
+2. [Estrutura de Arquivos](#estrutura-de-arquivos)
+3. [Descrição das Funções](#descrição-das-funções)  
+   3.1 [Funções Principais](#funções-principais)  
+   3.2 [Funções Auxiliares](#funções-auxiliares)
+4. [Como Jogar](#como-jogar)
+5. [Configurações e Ajustes](#configurações-e-ajustes) 
+
 # BreakMips
-Implementação do jogo breakout em Asembly MIPS para o simulador Mars
+Este projeto é uma implementação do clássico jogo **Breakout**, desenvolvida em Assembly MIPS para ser executada no simulador MARS. O objetivo é controlar uma palheta, movimentando-a para a esquerda e direita para rebater uma bola que destrói blocos no topo da tela. Se a bola passar pela palheta, o jogo é perdido. O jogo continua até que todos os blocos sejam destruídos ou a bola ultrapasse a palheta.
 
-# Definições e Configurações Iniciais:
-1. **Configurações da Tela:**
-   - `S_BS`, `S_W`, `S_H`, `S_WB`, `S_HB`: Definem o endereço base da tela, a largura e altura, além de suas versões em logaritmos (`log2`), usados para cálculos rápidos.
+## Estrutura de Arquivos
 
-2. **Configurações do Jogo:**
-   - `DLY`: Determina o atraso do loop principal (o número de ciclos).
-   - `FRMB`: Atraso dos quadros.
-   - `MUSIC_ON`, `INSTRUMENT`, `VOLUMN`, `MUSIC_DLY`: Controlam aspectos relacionados à música no jogo.
+- **Constants**: Contém as definições de configuração do jogo, como dimensões da tela, blocos, palheta e bola, bem como cores e outras constantes relevantes.
+- **Data Section**: Contém variáveis globais do jogo, como posições da palheta e da bola, estado do jogo, matriz de blocos e contadores.
 
-3. **Cores:**
-   - `C_BG`: Define a cor de fundo (um valor hexadecimal correspondente a uma cor específica).
+## Descrição das Funções
 
-## Seção `.data`:
-- **`menu_img`**: Uma imagem do menu armazenada em forma de dados (pixels em hexadecimal).
-- **Contadores de jogo:** `main_cnt`, `score_cnt`, `best_cnt`: Mantêm informações sobre o estado do jogo, como contagem principal, pontuação atual e melhor pontuação.
+### Funções Principais
 
-## Funções Importantes:
+1. **main**:
+   - Inicia o jogo exibindo o menu principal.
 
-1. **`main`:** Função principal do jogo.
-   - **Inicializa o jogo** e executa o menu inicial, chamando a função `draw_image` para desenhar a imagem do menu.
-   - Verifica a entrada do teclado e faz a transição para o jogo ou sai.
+2. **main_game_loop**:
+   - Loop principal do jogo. Monitora o estado do teclado, move a bola, detecta colisões e verifica se o jogo foi ganho ou perdido.
 
-2. **`draw_image`:** Função para desenhar uma imagem na tela.
-   - Usa os registradores `$a0` (endereço da imagem), `$a1` (posição inicial da altura) e `$a2` (posição inicial da largura) para calcular a posição de cada pixel da imagem e transferi-lo para a memória da tela.
-   - Usa um loop para percorrer cada pixel da imagem e verificar se está dentro dos limites da tela antes de desenhá-lo.
+3. **fall_ball**:
+   - Responsável por fazer a bola "cair" quando está em estado de queda. Atualiza as coordenadas da bola com base em sua velocidade atual.
 
-3. **`erase`:** Limpa uma região da tela preenchendo com a cor de fundo.
-   - Usa os registradores `$a0`, `$a1`, `$a2`, `$a3` para definir a área a ser apagada.
+4. **handle_ball**:
+   - Executa as ações relacionadas ao movimento da bola. Chama a função correta para lidar com o movimento, dependendo se a bola está subindo ou descendo.
 
-4. **`add64`:** Implementa uma adição de 64 bits, combinando dois valores de 32 bits de alta e baixa ordem.
+5. **ball_wall_collision**:
+   - Lida com a colisão da bola com as bordas da tela (superior, inferior, esquerda, direita). A direção da bola é invertida quando uma colisão ocorre.
 
-5. **`frame_sync_init` e `frame_sync_delay`:** Sincronizam a execução do jogo para manter uma taxa de quadros estável.
-   - **`frame_sync_init`** salva o tempo do sistema.
-   - **`frame_sync_delay`** compara o tempo atual com o anterior e aplica um atraso para garantir a consistência da execução.
+6. **ball_paddle_collision**:
+   - Detecta quando a bola colide com a palheta. Se houver colisão, a direção vertical da bola é invertida, simulando o rebote.
+
+7. **move_paddle_left** e **move_paddle_right**:
+   - Movem a palheta para a esquerda e direita, respectivamente, com base na entrada do usuário. Asseguram que a palheta não ultrapasse as bordas da tela.
+
+### Funções Auxiliares
+
+1. **draw_image**:
+   - Desenha imagens na tela, como o fundo do menu, a palheta, a bola, ou blocos. Utiliza coordenadas para posicionar corretamente os elementos gráficos.
+
+2. **erase**:
+   - Apaga uma área específica da tela, usada para limpar a posição anterior da bola e da palheta antes de desenhar suas novas posições.
+
+3. **frame_sync_delay**:
+   - Introduz um atraso no loop principal para garantir que a movimentação dos elementos na tela ocorra de forma sincronizada e com a velocidade correta.
+
+4. **reset_blocks**:
+   - Reinicia o estado dos blocos quando o jogo é perdido ou reiniciado, restaurando sua matriz de posições e estado ativo.
+
+5. **ganhou**:
+   - Exibe a tela de vitória quando o jogador destrói todos os blocos.
+
+6. **perdeu**:
+   - Exibe a tela de derrota quando a bola ultrapassa a palheta e permite reiniciar o jogo ou voltar ao menu principal.
+
+7. **play_sound**:
+   - Função para tocar sons MIDI. Define o tom, duração, instrumento e volume dos sons, como o som de colisões.
+
+## Como Jogar
+
+- Configure o bitmap display, mantendo o tamanho padrão da tela, coloque o tamanho dos pixels em 4 e a posição inicial no $gp.
+- Abra o keyboard do Mars e conecte.
+- Use as teclas **A** e **D** para mover a palheta para a esquerda e direita, respectivamente ou use qualquer outra tecla para parar a palheta.
+- Rebata a bola contra os blocos para destruí-los.
+- Evite que a bola ultrapasse a palheta, ou o jogo será perdido.
+- Destrua todos os blocos para vencer.
+
+## Configurações e Ajustes
+
+Você pode modificar as configurações do jogo alterando as constantes no início do código. As principais constantes incluem:
+- **Dimensões da tela** (`S_W`, `S_H`)
+- **Dimensões da palheta** (`P_W`, `P_H`)
+- **Velocidade da palheta** (`P_SPEED`)
+- **Dimensões dos blocos** (`BL_W`, `BL_H`)
+- **Velocidade da bola** (`ball_vx`, `ball_vy`)
